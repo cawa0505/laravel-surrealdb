@@ -58,6 +58,7 @@ To configure a new SurrealDB connection, add a new connection entry to `config/d
     'database' => env('DB_DATABASE', 'app'),
     'username' => env('DB_USERNAME', 'root'),
     'password' => env('DB_PASSWORD', 'root'),
+    'version' => env('DB_VERSION', 2), // v1, v2 has different request headers through http
 ],
 ```
 
