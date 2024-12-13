@@ -6,15 +6,14 @@ use GuzzleHttp\Client as GuzzleClient;
 use Illuminate\Database\Connection as BaseConnection;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
-use InvalidArgumentException;
 
 class Connection extends BaseConnection
 {
     /**
      * The Surreal database connection handler.
      *
-     * @param array $config
-     * @param array $options
+     * @param  array  $config
+     * @param  array  $options
      *
      * @var \GuzzleHttp\Client
      */
@@ -30,8 +29,6 @@ class Connection extends BaseConnection
     /**
      * Bind values to their parameters in the given query.
      *
-     * @param $query
-     * @param $bindings
      *
      * @return array
      */
@@ -48,29 +45,38 @@ class Connection extends BaseConnection
     /**
      * Create a new SurrealDB connection.
      *
-     * @param array $config
-     * @param array $options
      *
      * @var \GuzzleHttp\Client
      */
     protected function createConnection(array $config, array $options)
     {
         $baseUri = (! parse_url($config['host'], PHP_URL_HOST))
-            ? $config['host'] . ':' . $config['port']
+            ? $config['host'].':'.$config['port']
             : $config['host'];
+
+        $headers = [
+            'Accept' => 'application/json',
+        ];
+        switch ($config['version']) {
+            case 1:
+                $headers['NS'] = $config['namespace'];
+                $headers['DB'] = $config['database'];
+                break;
+            default:
+            case 2:
+                $headers['surreal-ns'] = $config['namespace'];
+                $headers['surreal-db'] = $config['database'];
+                break;
+        }
 
         $clientConfig = [
             'base_uri' => $baseUri,
-            'headers'  => [
-                'Accept'        => 'application/json',
-                'NS'            => $config['namespace'],
-                'DB'            => $config['database'],
-            ],
+            'headers' => $headers,
         ];
 
         if ($config['username'] && $config['password']) {
-            $credentials = base64_encode($config['username'] . ':' . $config['password']);
-            $clientConfig['headers']['Authorization'] = 'Basic ' . $credentials;
+            $credentials = base64_encode($config['username'].':'.$config['password']);
+            $clientConfig['headers']['Authorization'] = 'Basic '.$credentials;
         }
 
         return new GuzzleClient($clientConfig);
@@ -78,8 +84,6 @@ class Connection extends BaseConnection
 
     /**
      * Create a new database connection instance.
-     *
-     * @param array $config
      */
     public function __construct(array $config)
     {
@@ -95,7 +99,7 @@ class Connection extends BaseConnection
     }
 
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
     public function affectingStatement($query, $bindings = [])
     {
@@ -123,8 +127,7 @@ class Connection extends BaseConnection
     /**
      * Begin a fluent query against a database collection.
      *
-     * @param string $collection
-     *
+     * @param  string  $collection
      * @return Query\Builder
      */
     public function collection($collection)
@@ -137,9 +140,9 @@ class Connection extends BaseConnection
     /**
      * Decode the response from the SurrealDB server.
      *
-     * @param mixed $response
-     *
+     * @param  mixed  $response
      * @return mixed
+     *
      * @throws \JsonException
      */
     public function decode($response)
@@ -156,7 +159,7 @@ class Connection extends BaseConnection
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function getDriverName()
     {
@@ -164,7 +167,7 @@ class Connection extends BaseConnection
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     protected function getDefaultPostProcessor()
     {
@@ -172,7 +175,7 @@ class Connection extends BaseConnection
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function getDefaultQueryGrammar()
     {
@@ -192,15 +195,14 @@ class Connection extends BaseConnection
     /**
      * Run a select statement against the database.
      *
-     * @param string $query
-     * @param array  $bindings
-     * @param bool   $useReadPdo
-     *
+     * @param  string  $query
+     * @param  array  $bindings
+     * @param  bool  $useReadPdo
      * @return array|mixed
      */
     public function select($query, $bindings = [], $useReadPdo = false)
     {
-        return $this->run($query, $bindings, function ($query, $bindings) use ($useReadPdo) {
+        return $this->run($query, $bindings, function ($query, $bindings) {
             if ($this->pretending()) {
                 return [];
             }
@@ -218,8 +220,8 @@ class Connection extends BaseConnection
     /**
      * Execute an SQL statement and return the boolean result.
      *
-     * @param string $query
-     * @param array  $bindings
+     * @param  string  $query
+     * @param  array  $bindings
      * @return bool
      */
     public function statement($query, $bindings = [])
@@ -244,9 +246,8 @@ class Connection extends BaseConnection
     /**
      * Begin a fluent query against a database collection.
      *
-     * @param string  $table
-     * @param ?string $as
-     *
+     * @param  string  $table
+     * @param  ?string  $as
      * @return Query\Builder
      */
     public function table($table, $as = null)
